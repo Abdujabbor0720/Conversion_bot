@@ -21,7 +21,7 @@ import {
     getChannelMembershipKeyboard,
     getRatingKeyboard,
     getLanguageKeyboard
-} from './src/keyboards/keyboards.js';
+} from './src/keyboards.js';
 import {
     getWelcomeMessage,
     getHelpMessage,
@@ -39,7 +39,7 @@ import {
     getBroadcastSuccessMessage,
     getChannelMembershipMessage,
     getMembershipVerifiedMessage
-} from './src/messages/messages.js';
+} from './src/messages.js';
 import userManager from './src/utils/userManager.js';
 
 // Converters
