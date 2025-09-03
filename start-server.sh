@@ -21,7 +21,7 @@ PROCESSING_TIMEOUT=300000
 MAX_FILES_PER_SESSION=1000
 MIN_PDF_FILES=2
 DATABASE_TYPE=postgresql
-POSTGRES_URL=postgresql://username:password@postgresql-server.alwaysdata.net:5432/dbname
+POSTGRES_URL=postgresql://postgres:12345678@postgresql-server.alwaysdata.net:5432/dbname
 EOF
     
     echo "✅ .env fayli yaratildi"
