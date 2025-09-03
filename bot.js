@@ -579,7 +579,7 @@ bot.hears(/❌ (Bekor qilish|Отменить|Cancel)|🔙 (Bosh menyu|Глав�
     userFiles.delete(userId);
     broadcastState.delete(userId); // Broadcast state ni ham tozalash
 
-    updateUserActivity(userId);
+    await userManager.updateUserActivity(userId);
     const userLang = await userManager.getUserLanguage(userId);
     const keyboard = getMainKeyboard(isAdmin(userId), userLang);
     await ctx.reply(getMessage('cancelled', userLang), keyboard);
