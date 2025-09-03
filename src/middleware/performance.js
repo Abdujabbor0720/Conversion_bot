@@ -12,7 +12,7 @@ class PerformanceMonitor {
             peakConcurrentUsers: 0,
             currentActiveUsers: new Set()
         };
-        
+
         this.processingTimes = [];
         this.maxMetricsHistory = 100;
     }
@@ -23,7 +23,7 @@ class PerformanceMonitor {
     requestStart(userId, fileType) {
         this.metrics.totalRequests++;
         this.metrics.currentActiveUsers.add(userId);
-        
+
         if (this.metrics.currentActiveUsers.size > this.metrics.peakConcurrentUsers) {
             this.metrics.peakConcurrentUsers = this.metrics.currentActiveUsers.size;
         }
@@ -40,17 +40,17 @@ class PerformanceMonitor {
      */
     requestSuccess(requestData) {
         const processingTime = Date.now() - requestData.startTime;
-        
+
         this.metrics.successfulProcessing++;
         this.metrics.currentActiveUsers.delete(requestData.userId);
-        
+
         // O'rtacha vaqtni hisoblash
         this.processingTimes.push(processingTime);
         if (this.processingTimes.length > this.maxMetricsHistory) {
             this.processingTimes.shift();
         }
-        
-        this.metrics.averageProcessingTime = 
+
+        this.metrics.averageProcessingTime =
             this.processingTimes.reduce((a, b) => a + b, 0) / this.processingTimes.length;
 
         console.log(`✅ Processing completed in ${processingTime}ms for user ${requestData.userId}`);
@@ -62,7 +62,7 @@ class PerformanceMonitor {
     requestFailed(requestData, error) {
         this.metrics.failedProcessing++;
         this.metrics.currentActiveUsers.delete(requestData.userId);
-        
+
         console.error(`❌ Processing failed for user ${requestData.userId}:`, error.message);
     }
 
@@ -71,7 +71,7 @@ class PerformanceMonitor {
      */
     getSystemLoad() {
         const activeUsers = this.metrics.currentActiveUsers.size;
-        const successRate = this.metrics.totalRequests > 0 ? 
+        const successRate = this.metrics.totalRequests > 0 ?
             (this.metrics.successfulProcessing / this.metrics.totalRequests * 100).toFixed(1) : 0;
 
         return {
@@ -97,9 +97,9 @@ class PerformanceMonitor {
     getRecentFailureRate() {
         const recentRequests = 20; // So'nggi 20 ta so'rov
         const totalRecent = Math.min(this.metrics.totalRequests, recentRequests);
-        
+
         if (totalRecent === 0) return 0;
-        
+
         const recentFailures = Math.min(this.metrics.failedProcessing, recentRequests);
         return recentFailures / totalRecent;
     }

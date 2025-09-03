@@ -1,7 +1,12 @@
 import { Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
 
-dotenv.config();
+// .env faylini yuklash
+if (process.env.NODE_ENV === 'production') {
+    dotenv.config({ path: '.env.production' });
+} else {
+    dotenv.config({ path: '.env.server' });
+}
 
 class PostgreSQLDatabase {
     constructor() {
@@ -16,8 +21,9 @@ class PostgreSQLDatabase {
                 return this.sequelize;
             }
 
-            const dbUrl = process.env.POSTGRES_URL || 'postgresql://postgres:telegram123@localhost:5432/telegram_bot';
+            const dbUrl = process.env.POSTGRES_URL || 'postgresql://postgres:newpassword123@localhost:5432/telegram_bot_db';
             console.log('🐘 PostgreSQL ga ulanish...');
+            console.log('📡 Connection URL:', dbUrl);
 
             this.sequelize = new Sequelize(dbUrl, {
                 dialect: 'postgres',

@@ -1,0 +1,17 @@
+#!/bin/bash
+
+echo "🔍 AlwaysData PostgreSQL ma'lumotlarini kiriting:"
+echo ""
+echo "1. AlwaysData panelida Databases > PostgreSQL bo'limiga boring"
+echo "2. Quyidagi ma'lumotlarni toping:"
+echo ""
+echo "Host: postgresql-serverXXX.alwaysdata.net"
+echo "Port: 5432"
+echo "Database: serverXXX_telegram_bot (yoki siz yaratgan nom)"
+echo "Username: serverXXX_user (yoki siz yaratgan username)"
+echo "Password: siz belgilagan parol"
+echo ""
+echo "3. Misol connection string:"
+echo "postgresql://server123456_user:yourpassword@postgresql-server123456.alwaysdata.net:5432/server123456_telegram_bot"
+echo ""
+echo "4. Bu ma'lumotlarni yuboring, men .env.server faylini to'g'irlab beraman!"

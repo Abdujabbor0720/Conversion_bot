@@ -4,7 +4,11 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Config yuklash
-dotenv.config();
+if (process.env.NODE_ENV === 'production') {
+    dotenv.config({ path: '.env.production' });
+} else {
+    dotenv.config({ path: '.env.server' });
+}
 
 // Local modullar
 import config from './src/config.js';

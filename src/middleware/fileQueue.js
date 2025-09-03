@@ -17,7 +17,7 @@ class ProcessingQueue {
     addToQueue(userId, fileId, fileType, processingFunction) {
         // User uchun navbatdagi fayllar sonini tekshirish
         const userFilesInQueue = this.queue.filter(item => item.userId === userId).length;
-        
+
         if (userFilesInQueue >= this.userLimit) {
             throw new Error(`⚠️ Siz navbatda ${this.userLimit} ta fayldan ko'p bo'la olmaysiz. Iltimos kutib turing.`);
         }
@@ -34,7 +34,7 @@ class ProcessingQueue {
 
         this.queue.push(queueItem);
         this.processNext();
-        
+
         return {
             position: this.getQueuePosition(queueItem.id),
             estimatedTime: this.getEstimatedTime()
@@ -64,10 +64,10 @@ class ProcessingQueue {
         try {
             // Faylni ishlov berish
             await nextItem.processingFunction();
-            
+
             // Muvaffaqiyatli tugatish
             this.completeProcessing(nextItem);
-            
+
         } catch (error) {
             // Xatolik bo'lsa
             this.failProcessing(nextItem, error);
@@ -80,7 +80,7 @@ class ProcessingQueue {
     completeProcessing(item) {
         this.processing.delete(item.userId);
         this.queue = this.queue.filter(queueItem => queueItem.id !== item.id);
-        
+
         // Keyingi faylni ishlov berish
         setTimeout(() => this.processNext(), 100);
     }
@@ -91,9 +91,9 @@ class ProcessingQueue {
     failProcessing(item, error) {
         this.processing.delete(item.userId);
         this.queue = this.queue.filter(queueItem => queueItem.id !== item.id);
-        
+
         console.error(`❌ Queue processing failed for user ${item.userId}:`, error);
-        
+
         // Keyingi faylni ishlov berish
         setTimeout(() => this.processNext(), 100);
     }
