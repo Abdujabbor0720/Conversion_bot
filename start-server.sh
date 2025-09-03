@@ -20,8 +20,14 @@ BOT_VERSION=1.0.0
 PROCESSING_TIMEOUT=300000
 MAX_FILES_PER_SESSION=1000
 MIN_PDF_FILES=2
+# Database Configuration
 DATABASE_TYPE=postgresql
-POSTGRES_URL=postgresql://postgres:12345678@postgresql-server.alwaysdata.net:5432/dbname
+POSTGRES_URL=postgresql://server001_postgres:12345678@postgresql-server001.alwaysdata.net:5432/server001_telegram_bot_db
+
+# Performance Settings
+MAX_CONCURRENT_PROCESSING=3
+USER_QUEUE_LIMIT=2
+ENABLE_PERFORMANCE_MONITORING=true
 EOF
     
     echo "✅ .env fayli yaratildi"
