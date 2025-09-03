@@ -7,7 +7,7 @@ import path from 'path';
 dotenv.config();
 
 // Local modullar
-import config from './src/config/config.js';
+import config from './src/config.js';
 import { createDirectories, downloadFile, cleanupFiles } from './src/utils/fileUtils.js';
 import {
     getMainKeyboard,
