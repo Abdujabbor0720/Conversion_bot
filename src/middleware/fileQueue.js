@@ -7,8 +7,8 @@ class ProcessingQueue {
     constructor() {
         this.queue = [];
         this.processing = new Map(); // userId -> {status, startTime}
-        this.maxConcurrent = 3; // Bir vaqtda 3 ta fayl ishlov berish
-        this.userLimit = 2; // Har bir user uchun maksimal 2 ta fayl navbatda
+        this.maxConcurrent = 10; // Bir vaqtda 10 ta fayl ishlov berish (ko'paytirildi)
+        this.userLimit = 999999; // Har bir user uchun CHEKSIZ fayl navbatda
     }
 
     /**

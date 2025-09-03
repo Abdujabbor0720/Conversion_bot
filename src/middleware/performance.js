@@ -84,14 +84,11 @@ class PerformanceMonitor {
     }
 
     /**
-     * Sistema yuki yuqori bo'lsa ogohlantirish
+     * Sistema yuki yuqori bo'lsa ogohlantirish - CHEKSIZ QILINDI
      */
     shouldThrottle() {
-        const activeUsers = this.metrics.currentActiveUsers.size;
-        const recentFailureRate = this.getRecentFailureRate();
-        
-        // 10 dan ko'p active user yoki 30% dan ko'p failure bo'lsa
-        return activeUsers > 10 || recentFailureRate > 0.3;
+        // Hech qachon throttle qilmaslik - CHEKSIZ
+        return false;
     }
 
     /**
