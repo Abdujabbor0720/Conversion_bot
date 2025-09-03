@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node bot.js",
-    "dev": "node --watch bot.js"
+    "dev": "node --watch bot.js",
+    "prod": "NODE_ENV=production node bot.js"
   },
   "keywords": [
     "telegram",
@@ -21,11 +22,15 @@
     "docx-pdf": "^0.0.1",
     "dotenv": "^16.6.1",
     "mammoth": "^1.6.0",
+    "mongodb": "^6.19.0",
+    "mongoose": "^8.18.0",
     "officegen": "^0.6.5",
     "pdf-lib": "^1.17.1",
     "pdf-merger-js": "^4.3.0",
     "pdf-poppler": "^0.2.1",
     "pdf2pic": "^3.1.1",
+    "pg": "^8.16.3",
+    "sequelize": "^6.37.7",
     "sharp": "^0.32.6",
     "telegraf": "^4.16.3"
   }

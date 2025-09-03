@@ -40,19 +40,7 @@ import {
     getChannelMembershipMessage,
     getMembershipVerifiedMessage
 } from './src/messages/messages.js';
-import {
-    addUser,
-    updateUserActivity,
-    getUsersCount,
-    getOnlineUsersCount,
-    getAllUsers,
-    setChannelMembership,
-    getChannelMembership,
-    saveUserRating,
-    getRatingStats,
-    setUserLanguage,
-    getUserLanguage
-} from './src/utils/userManager.js';
+import userManager from './src/utils/userManager.js';
 
 // Converters
 import { imagesToPdf } from './src/converters/imageConverter.js';
@@ -198,7 +186,7 @@ async function checkChannelMembership(ctx, userId) {
 // Middleware - foydalanuvchi aktivligini yangilash va kanal a'zoligini tekshirish
 bot.use(async (ctx, next) => {
     if (ctx.from) {
-        updateUserActivity(ctx.from.id);
+        await userManager.updateUserActivity(ctx.from.id);
 
         // Start komandasi va admin uchun tekshirish yo'q
         const isStartCommand = ctx.message && ctx.message.text && ctx.message.text.startsWith('/start');
@@ -241,15 +229,14 @@ bot.use(async (ctx, next) => {
 async function startup() {
     try {
         createDirectories();
+
         console.log('🤖 Professional File Conversion Bot ishga tushmoqda...');
         console.log('📁 Temp papkalar yaratildi');
     } catch (error) {
         console.error('❌ Startup xatoligi:', error);
         process.exit(1);
     }
-}
-
-// Start komandasi - foydalanuvchini bazaga qo'shish bilan
+}// Start komandasi - foydalanuvchini bazaga qo'shish bilan
 bot.start(async (ctx) => {
     try {
         const userId = ctx.from.id;
@@ -260,11 +247,11 @@ bot.start(async (ctx) => {
         };
 
         // Foydalanuvchini bazaga qo'shish/yangilash
-        addUser(userId, userData);
-        updateUserActivity(userId);
+        await userManager.addUser(userId, userData);
+        await userManager.updateUserActivity(userId);
 
         // Foydalanuvchi tilini tekshirish
-        const userLang = getUserLanguage(userId);
+        const userLang = await userManager.getUserLanguage(userId);
 
         // Agar til hech tanlanmagan bo'lsa, til tanlashni so'ra
         if (!userLang) {
@@ -277,7 +264,7 @@ bot.start(async (ctx) => {
         // Admin uchun kanal tekshiruvi yo'q
         if (!isAdmin(userId)) {
             // Kanal a'zoligini tekshirish
-            const isMember = getChannelMembership(userId);
+            const isMember = await userManager.getChannelMembership(userId);
 
             if (!isMember) {
                 const membershipMsg = getChannelMembershipMessage();
@@ -300,12 +287,12 @@ bot.start(async (ctx) => {
 bot.hears(['ℹ️ Yordam', 'ℹ️ Помощь', 'ℹ️ Help'], async (ctx) => {
     try {
         const userId = ctx.from.id;
-        const userLang = getUserLanguage(userId);
+        const userLang = await userManager.getUserLanguage(userId);
         const helpMsg = getMessage('help', userLang);
         await ctx.replyWithMarkdown(helpMsg);
     } catch (error) {
         console.error('Help handler error:', error);
-        const userLang = getUserLanguage(ctx.from.id);
+        const userLang = await userManager.getUserLanguage(ctx.from.id);
         const errorMsg = getMessage('error', userLang, 'Yordam ma\'lumotini yuklash');
         await ctx.reply(errorMsg);
     }
@@ -315,12 +302,12 @@ bot.hears(['ℹ️ Yordam', 'ℹ️ Помощь', 'ℹ️ Help'], async (ctx) =
 bot.hears('🆔 Telegram ID', async (ctx) => {
     try {
         const userId = ctx.from.id;
-        const userLang = getUserLanguage(userId);
+        const userLang = await userManager.getUserLanguage(userId);
         const idMsg = getMessage('telegramId', userLang, userId);
         await ctx.replyWithMarkdown(idMsg);
     } catch (error) {
         console.error('ID handler error:', error);
-        const userLang = getUserLanguage(ctx.from.id);
+        const userLang = await userManager.getUserLanguage(ctx.from.id);
         await ctx.reply(`🆔 Sizning Telegram ID: \`${ctx.from.id}\``, { parse_mode: 'Markdown' });
     }
 });
@@ -330,12 +317,12 @@ bot.hears('🆔 Telegram ID', async (ctx) => {
 bot.hears(['🤝 Botni do\'stlarga ulashish', '🤝 Поделиться ботом', '🤝 Share Bot'], async (ctx) => {
     try {
         const userId = ctx.from.id;
-        const userLang = getUserLanguage(userId);
+        const userLang = await userManager.getUserLanguage(userId);
         const shareMsg = getMessage('shareBot', userLang);
         await ctx.replyWithMarkdown(shareMsg, getShareInlineKeyboard());
     } catch (error) {
         console.error('Share handler error:', error);
-        const userLang = getUserLanguage(ctx.from.id);
+        const userLang = await userManager.getUserLanguage(ctx.from.id);
         const errorMsg = getMessage('error', userLang, 'Ulashish');
         await ctx.reply(errorMsg);
     }
@@ -345,13 +332,13 @@ bot.hears(['🤝 Botni do\'stlarga ulashish', '🤝 Поделиться бот�
 bot.hears(['🌐 Til / Language', '🌐 Язык / Language', '🌐 Language'], async (ctx) => {
     try {
         const userId = ctx.from.id;
-        const userLang = getUserLanguage(userId);
+        const userLang = await userManager.getUserLanguage(userId);
         const langMsg = getMessage('selectLang', userLang);
         const langKeyboard = getLanguageKeyboard();
         await ctx.replyWithMarkdown(langMsg, langKeyboard);
     } catch (error) {
         console.error('Language selection handler error:', error);
-        const userLang = getUserLanguage(ctx.from.id);
+        const userLang = await userManager.getUserLanguage(ctx.from.id);
         const errorMsg = getMessage('error', userLang, 'Til tanlash');
         await ctx.reply(errorMsg);
     }
@@ -361,7 +348,7 @@ bot.hears(['🌐 Til / Language', '🌐 Язык / Language', '🌐 Language'], 
 bot.hears('📸 JPG → PDF', async (ctx) => {
     try {
         const userId = ctx.from.id;
-        const userLang = getUserLanguage(userId);
+        const userLang = await userManager.getUserLanguage(userId);
 
         userStates.set(userId, config.userStates.WAITING_JPG);
         userFiles.set(userId, []);
@@ -370,7 +357,7 @@ bot.hears('📸 JPG → PDF', async (ctx) => {
         await ctx.reply(waitingMsg, getCancelKeyboard(userLang));
     } catch (error) {
         console.error('JPG handler error:', error);
-        const userLang = getUserLanguage(ctx.from.id);
+        const userLang = await userManager.getUserLanguage(ctx.from.id);
         const errorMsg = getMessage('error', userLang, 'JPG konversiya');
         await ctx.reply(errorMsg);
     }
@@ -381,7 +368,7 @@ bot.hears('📸 JPG → PDF', async (ctx) => {
 bot.hears('🖼 PNG → PDF', async (ctx) => {
     try {
         const userId = ctx.from.id;
-        const userLang = getUserLanguage(userId);
+        const userLang = await userManager.getUserLanguage(userId);
 
         userStates.set(userId, config.userStates.WAITING_PNG);
         userFiles.set(userId, []);
@@ -390,7 +377,7 @@ bot.hears('🖼 PNG → PDF', async (ctx) => {
         await ctx.reply(waitingMsg, getCancelKeyboard(userLang));
     } catch (error) {
         console.error('PNG handler error:', error);
-        const userLang = getUserLanguage(ctx.from.id);
+        const userLang = await userManager.getUserLanguage(ctx.from.id);
         const errorMsg = getMessage('error', userLang, 'PNG konversiya');
         await ctx.reply(errorMsg);
     }
@@ -401,7 +388,7 @@ bot.hears('🖼 PNG → PDF', async (ctx) => {
 bot.hears('📝 Word → TEXT', async (ctx) => {
     try {
         const userId = ctx.from.id;
-        const userLang = getUserLanguage(userId);
+        const userLang = await userManager.getUserLanguage(userId);
 
         userStates.set(userId, config.userStates.WAITING_DOCX);
         userFiles.set(userId, []);
@@ -410,7 +397,7 @@ bot.hears('📝 Word → TEXT', async (ctx) => {
         await ctx.reply(waitingMsg, getCancelKeyboard(userLang));
     } catch (error) {
         console.error('Word handler error:', error);
-        const userLang = getUserLanguage(ctx.from.id);
+        const userLang = await userManager.getUserLanguage(ctx.from.id);
         const errorMsg = getMessage('error', userLang, 'Word konversiya');
         await ctx.reply(errorMsg);
     }
@@ -421,7 +408,7 @@ bot.hears('📝 Word → TEXT', async (ctx) => {
 bot.hears('📄 PDF → Word', async (ctx) => {
     try {
         const userId = ctx.from.id;
-        const userLang = getUserLanguage(userId);
+        const userLang = await userManager.getUserLanguage(userId);
 
         userStates.set(userId, config.userStates.WAITING_PDF_TO_WORD);
         userFiles.set(userId, []);
@@ -430,7 +417,7 @@ bot.hears('📄 PDF → Word', async (ctx) => {
         await ctx.reply(waitingMsg, getCancelKeyboard(userLang));
     } catch (error) {
         console.error('PDF to Word handler error:', error);
-        const userLang = getUserLanguage(ctx.from.id);
+        const userLang = await userManager.getUserLanguage(ctx.from.id);
         const errorMsg = getMessage('error', userLang, 'PDF konversiya');
         await ctx.reply(errorMsg);
     }
@@ -440,7 +427,7 @@ bot.hears('📄 PDF → Word', async (ctx) => {
 bot.hears(['🔗 PDF Birlashtirish', '🔗 Объединить PDF', '🔗 Merge PDF'], async (ctx) => {
     try {
         const userId = ctx.from.id;
-        const userLang = getUserLanguage(userId);
+        const userLang = await userManager.getUserLanguage(userId);
 
         userStates.set(userId, config.userStates.WAITING_PDFS_TO_MERGE);
         userFiles.set(userId, []);
@@ -449,7 +436,7 @@ bot.hears(['🔗 PDF Birlashtirish', '🔗 Объединить PDF', '🔗 Merg
         await ctx.reply(waitingMsg, getMergeKeyboard(userLang));
     } catch (error) {
         console.error('PDF merge handler error:', error);
-        const userLang = getUserLanguage(ctx.from.id);
+        const userLang = await userManager.getUserLanguage(ctx.from.id);
         const errorMsg = getMessage('error', userLang, 'PDF birlashtirish');
         await ctx.reply(errorMsg);
     }
@@ -462,12 +449,12 @@ bot.hears(/^✅ (O'tkazishni boshlash|Начать конвертацию|Start 
     const files = userFiles.get(userId);
 
     if (!files || files.length === 0) {
-        const userLang = getUserLanguage(userId);
+        const userLang = await userManager.getUserLanguage(userId);
         await ctx.reply(getMessage('noFilesFound', userLang));
         return;
     }
 
-    const userLang = getUserLanguage(userId);
+    const userLang = await userManager.getUserLanguage(userId);
     const processingMsg = await ctx.reply(getMessage('processing', userLang));
 
     try {
@@ -544,7 +531,7 @@ bot.hears(/^✅ (O'tkazishni boshlash|Начать конвертацию|Start 
 // PDF Birlashtirish - barcha tillar uchun
 bot.hears(/^✅ (Birlashtirish|Объединить|Merge)/, async (ctx) => {
     const userId = ctx.from.id;
-    const userLang = getUserLanguage(userId);
+    const userLang = await userManager.getUserLanguage(userId);
     const files = userFiles.get(userId);
 
     if (!files || files.length < 2) {
@@ -593,7 +580,7 @@ bot.hears(/❌ (Bekor qilish|Отменить|Cancel)|🔙 (Bosh menyu|Глав�
     broadcastState.delete(userId); // Broadcast state ni ham tozalash
 
     updateUserActivity(userId);
-    const userLang = getUserLanguage(userId);
+    const userLang = await userManager.getUserLanguage(userId);
     const keyboard = getMainKeyboard(isAdmin(userId), userLang);
     await ctx.reply(getMessage('cancelled', userLang), keyboard);
 });
@@ -601,7 +588,7 @@ bot.hears(/❌ (Bekor qilish|Отменить|Cancel)|🔙 (Bosh menyu|Глав�
 // Yana fayl qo'shish - barcha tillar uchun
 bot.hears(/➕ (Yana fayl qo'shish|Добавить ещё файл|Add more files)/, async (ctx) => {
     const userId = ctx.from.id;
-    const userLang = getUserLanguage(userId);
+    const userLang = await userManager.getUserLanguage(userId);
     const files = userFiles.get(userId) || [];
 
     await ctx.reply(getMessage('addMoreFiles', userLang, files.length));
@@ -611,7 +598,7 @@ bot.hears(/➕ (Yana fayl qo'shish|Добавить ещё файл|Add more fil
 bot.on(message('photo'), async (ctx) => {
     const userId = ctx.from.id;
     const userState = userStates.get(userId);
-    const userLang = getUserLanguage(userId);
+    const userLang = await userManager.getUserLanguage(userId);
 
     if (userState === config.userStates.WAITING_JPG || userState === config.userStates.WAITING_PNG) {
         try {
@@ -679,14 +666,14 @@ bot.on(message('document'), async (ctx) => {
             files.push(filePath);
             userFiles.set(userId, files);
 
-            const userLang = getUserLanguage(userId);
+            const userLang = await userManager.getUserLanguage(userId);
             if (userState === config.userStates.WAITING_PDFS_TO_MERGE) {
                 await ctx.reply(getMessage('fileReceived', userLang, document.file_name, files.length), getMergeKeyboard(userLang));
             } else {
                 await ctx.reply(getMessage('fileReceived', userLang, document.file_name, files.length), getConversionKeyboard(files.length, userLang));
             }
         } else {
-            const userLang = getUserLanguage(userId);
+            const userLang = await userManager.getUserLanguage(userId);
 
             // Foydalanuvchi holatiga qarab to'g'ri format nomini ko'rsatish
             if (userState === config.userStates.WAITING_JPG) {
@@ -704,7 +691,7 @@ bot.on(message('document'), async (ctx) => {
 
     } catch (error) {
         console.error('Document handler error:', error);
-        const userLang = getUserLanguage(userId);
+        const userLang = await userManager.getUserLanguage(userId);
         await ctx.reply(getMessage('error', userLang, error.message));
     }
 });
@@ -713,7 +700,7 @@ bot.on(message('document'), async (ctx) => {
 bot.action('new_conversion', async (ctx) => {
     await ctx.answerCbQuery();
     const userId = ctx.from.id;
-    const userLang = getUserLanguage(userId);
+    const userLang = await userManager.getUserLanguage(userId);
 
     const message = getMessage('newConversion', userLang);
     await ctx.reply(message, getMainKeyboard(isAdmin(userId), userLang));
@@ -722,7 +709,7 @@ bot.action('new_conversion', async (ctx) => {
 bot.action('share_bot', async (ctx) => {
     await ctx.answerCbQuery();
     const userId = ctx.from.id;
-    const userLang = getUserLanguage(userId);
+    const userLang = await userManager.getUserLanguage(userId);
     const shareMsg = getMessage('shareBot', userLang);
     await ctx.replyWithMarkdown(shareMsg, getShareInlineKeyboard());
 });
@@ -730,7 +717,7 @@ bot.action('share_bot', async (ctx) => {
 bot.action('rate_bot', async (ctx) => {
     await ctx.answerCbQuery();
     const userId = ctx.from.id;
-    const userLang = getUserLanguage(userId);
+    const userLang = await userManager.getUserLanguage(userId);
 
     const ratingMessages = {
         uz: '⭐ *Botni baholang!*\n\nBizning xizmatimiz sizga yoqdimi?\nQuyidagi yulduzchalardan birini tanlang:',
@@ -748,10 +735,10 @@ bot.action(/^rate_(\d)$/, async (ctx) => {
     try {
         const rating = parseInt(ctx.match[1]);
         const userId = ctx.from.id;
-        const userLang = getUserLanguage(userId);
+        const userLang = await userManager.getUserLanguage(userId);
 
         // Reytingni saqlash
-        saveUserRating(userId, rating);
+        await userManager.saveUserRating(userId, rating);
 
         const callbackMessages = {
             uz: `✅ ${rating} yulduz berildi!`,
@@ -781,7 +768,7 @@ bot.action(/^rate_(\d)$/, async (ctx) => {
             ru: '❌ Произошла ошибка!',
             en: '❌ An error occurred!'
         };
-        const userLang = getUserLanguage(ctx.from.id);
+        const userLang = await userManager.getUserLanguage(ctx.from.id);
         const errorMsg = errorMessages[userLang] || errorMessages.uz;
         await ctx.answerCbQuery(errorMsg);
     }
@@ -794,7 +781,7 @@ bot.action(/^lang_(.+)$/, async (ctx) => {
         const userId = ctx.from.id;
 
         // Tilni saqlash
-        setUserLanguage(userId, language);
+        await userManager.setUserLanguage(userId, language);
 
         await ctx.answerCbQuery('✅ Til o\'zgartirildi!');
 
@@ -805,7 +792,7 @@ bot.action(/^lang_(.+)$/, async (ctx) => {
 
         // Asosiy menyuni ko'rsatish
         setTimeout(async () => {
-            const userLang = getUserLanguage(userId);
+            const userLang = await userManager.getUserLanguage(userId);
             const welcomeMsg = getMessage('welcome', userLang, ctx.from.first_name);
             const keyboard = getMainKeyboard(isAdmin(userId), userLang);
             await ctx.replyWithMarkdown(welcomeMsg, keyboard);
@@ -863,44 +850,21 @@ bot.action('check_membership', async (ctx) => {
 // Bot ishga tushirish
 // Bot ishga tushirish (retry logic bilan)
 async function main() {
-    const maxRetries = 3;
-    let retryCount = 0;
+    await startup();
+    const webhookUrl = process.env.WEBHOOK_URL;
+    const port = process.env.PORT || 3000;
 
-    while (retryCount < maxRetries) {
-        try {
-            await startup();
-
-            console.log('🔄 Telegram API ga ulanmoqda...');
-            await bot.launch();
-
-            console.log('🤖 Professional File Conversion Bot muvaffaqiyatli ishga tushdi!');
-            console.log('� Bot token: ****' + config.botToken.slice(-10));
-            console.log('⚡ Barcha xususiyatlar faol!');
-            console.log('🎉 Foydalanuvchilar uchun tayyor!');
-            return; // Muvaffaqiyatli ishga tushdi
-
-        } catch (error) {
-            retryCount++;
-            console.error(`❌ Urinish ${retryCount}/${maxRetries} muvaffaqiyatsiz:`, error.message);
-
-            if (error.code === 'ETIMEDOUT') {
-                console.log('🌐 Internet aloqasini tekshiring...');
-            } else if (error.message.includes('401')) {
-                console.log('🔑 Bot token noto\'g\'ri bo\'lishi mumkin');
-                break; // Token xato bo'lsa retry qilmaymiz
+    if (webhookUrl) {
+        bot.launch({
+            webhook: {
+                domain: webhookUrl,
+                port: port,
             }
-
-            if (retryCount < maxRetries) {
-                console.log(`⏳ ${5} sekund kutib, qayta urinish...`);
-                await new Promise(resolve => setTimeout(resolve, 5000));
-            } else {
-                console.log('💔 Bot ishga tushmadi. Quyidagilarni tekshiring:');
-                console.log('1. Internet aloqasi');
-                console.log('2. Bot token to\'g\'riligi');
-                console.log('3. Telegram API mavjudligi');
-                process.exit(1);
-            }
-        }
+        });
+        console.log(`🚀 Bot webhook orqali ishga tushdi: ${webhookUrl} (port: ${port})`);
+    } else {
+        bot.launch();
+        console.log('🚀 Bot polling orqali ishga tushdi!');
     }
 }
 
@@ -993,9 +957,9 @@ bot.hears('📊 Foydalanuvchilar statistikasi', async (ctx) => {
 
     try {
         console.log(`📊 Statistika hisoblanmoqda...`);
-        const totalUsers = getUsersCount();
-        const onlineUsers = getOnlineUsersCount();
-        const ratingStats = getRatingStats();
+        const totalUsers = await userManager.getUsersCount();
+        const onlineUsers = await userManager.getOnlineUsersCount();
+        const ratingStats = await userManager.getRatingStats();
         console.log(`📊 Umumiy: ${totalUsers}, Online: ${onlineUsers}, Reyting: ${ratingStats.averageRating}`);
 
         const statsMsg = getUserStatsMessage(totalUsers, onlineUsers, ratingStats);

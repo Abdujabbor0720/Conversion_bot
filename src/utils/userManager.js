@@ -1,216 +1,184 @@
+// PostgreSQL va JSON bilan ishlash
 import fs from 'fs';
 import path from 'path';
+import { PostgresDB } from '../database/postgres.js';
+import { createUserModel } from '../models/PostgresUser.js';
 
 const usersFile = path.join(process.cwd(), 'users.json');
 
-/**
- * Foydalanuvchilar bazasini yuklash
- */
-export function loadUsers() {
+// PostgreSQL bog'lanish
+let User = null;
+let sequelize = null;
+
+async function initPostgreSQL() {
+    try {
+        const postgresDB = new PostgresDB();
+        sequelize = await postgresDB.connect();
+        User = createUserModel(sequelize);
+        await sequelize.sync();
+        console.log('✅ PostgreSQL bog\'landi va User model yaratildi');
+    } catch (error) {
+        console.log('⚠️ PostgreSQL not available, using JSON fallback:', error.message);
+    }
+}
+
+initPostgreSQL().catch(console.error);
+
+const isPostgreSQLAvailable = () => sequelize && User;
+
+function loadUsers() {
     try {
         if (fs.existsSync(usersFile)) {
-            const data = fs.readFileSync(usersFile, 'utf8');
-            return JSON.parse(data);
+            return JSON.parse(fs.readFileSync(usersFile, 'utf8'));
         }
         return {};
-    } catch (error) {
-        console.error('Foydalanuvchilar bazasini yuklashda xatolik:', error);
+    } catch {
         return {};
     }
 }
 
-/**
- * Foydalanuvchilar bazasini saqlash
- */
-export function saveUsers(users) {
+function saveUsers(users) {
     try {
         fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
         return true;
-    } catch (error) {
-        console.error('Foydalanuvchilar bazasini saqlashda xatolik:', error);
+    } catch {
         return false;
     }
 }
 
-/**
- * Yangi foydalanuvchini qo'shish
- */
-export function addUser(userId, userData) {
-    const users = loadUsers();
-    users[userId] = {
-        id: userId,
-        firstName: userData.firstName || '',
-        lastName: userData.lastName || '',
-        username: userData.username || '',
-        firstSeen: new Date().toISOString(),
-        lastSeen: new Date().toISOString(),
-        ...userData
-    };
-    saveUsers(users);
-    return users[userId];
-}
-
-/**
- * Foydalanuvchini yangilash
- */
-export function updateUser(userId, userData) {
-    const users = loadUsers();
-    if (users[userId]) {
-        users[userId] = {
-            ...users[userId],
-            ...userData,
-            lastSeen: new Date().toISOString()
-        };
-        saveUsers(users);
-        return users[userId];
-    }
-    return null;
-}
-
-/**
- * Foydalanuvchini olish
- */
-export function getUser(userId) {
-    const users = loadUsers();
-    return users[userId] || null;
-}
-
-/**
- * Barcha foydalanuvchilarni olish
- */
-export function getAllUsers() {
-    return loadUsers();
-}
-
-/**
- * Foydalanuvchilar sonini hisoblash
- */
-export function getUsersCount() {
-    const users = loadUsers();
-    return Object.keys(users).length;
-}
-
-/**
- * Online foydalanuvchilar sonini hisoblash (oxirgi 5 daqiqada active bo'lganlar)
- */
-export function getOnlineUsersCount() {
-    const users = loadUsers();
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-
-    return Object.values(users).filter(user => {
-        const lastSeen = new Date(user.lastSeen);
-        return lastSeen > fiveMinutesAgo;
-    }).length;
-}
-
-/**
- * Foydalanuvchi aktivligini yangilash
- */
-export function updateUserActivity(userId) {
-    updateUser(userId, { lastSeen: new Date().toISOString() });
-}
-
-/**
- * Foydalanuvchining kanal a'zoligini belgilash
- */
-export function setChannelMembership(userId, isMember) {
-    updateUser(userId, {
-        isChannelMember: isMember,
-        membershipCheckedAt: new Date().toISOString()
-    });
-}
-
-/**
- * Foydalanuvchining kanal a'zoligini tekshirish
- */
-export function getChannelMembership(userId) {
-    const user = getUser(userId);
-    return user?.isChannelMember || false;
-}
-
-/**
- * Foydalanuvchi reytingini saqlash
- */
-export function saveUserRating(userId, rating) {
-    updateUser(userId, {
-        rating: rating,
-        ratedAt: new Date().toISOString()
-    });
-}
-
-/**
- * Barcha reytinglar statistikasini olish
- */
-export function getRatingStats() {
-    const users = loadUsers();
-    const ratings = [];
-
-    Object.values(users).forEach(user => {
-        if (user.rating && user.rating >= 1 && user.rating <= 5) {
-            ratings.push(user.rating);
+const userManager = {
+    async addUser(userId, userData) {
+        try {
+            if (isPostgreSQLAvailable() && User) {
+                console.log('🐘 PostgreSQL ga user qo\'shyapman:', userId);
+                const existingUser = await User.findByUserId(userId);
+                if (existingUser) {
+                    existingUser.firstName = userData.firstName || existingUser.firstName;
+                    existingUser.lastName = userData.lastName || existingUser.lastName;
+                    existingUser.username = userData.username || existingUser.username;
+                    existingUser.lastSeen = new Date();
+                    await existingUser.save();
+                    console.log('✅ PostgreSQL da user yangilandi');
+                    return existingUser;
+                } else {
+                    const newUser = await User.create({
+                        userId: userId.toString(),
+                        firstName: userData.firstName || '',
+                        lastName: userData.lastName || '',
+                        username: userData.username || '',
+                        firstSeen: new Date(),
+                        lastSeen: new Date()
+                    });
+                    console.log('✅ PostgreSQL ga yangi user qo\'shildi');
+                    return newUser;
+                }
+            } else {
+                console.log('📁 JSON fallback ishlatyapman:', userId);
+                const users = loadUsers();
+                users[userId] = {
+                    id: userId,
+                    firstName: userData.firstName || '',
+                    lastName: userData.lastName || '',
+                    username: userData.username || '',
+                    firstSeen: new Date().toISOString(),
+                    lastSeen: new Date().toISOString(),
+                    ...userData
+                };
+                saveUsers(users);
+                return users[userId];
+            }
+        } catch (error) {
+            console.error('Foydalanuvchini qo\'shishda xatolik:', error);
+            const users = loadUsers();
+            users[userId] = {
+                id: userId,
+                firstName: userData.firstName || '',
+                lastName: userData.lastName || '',
+                username: userData.username || '',
+                firstSeen: new Date().toISOString(),
+                lastSeen: new Date().toISOString(),
+                ...userData
+            };
+            saveUsers(users);
+            return users[userId];
         }
-    });
+    },
 
-    if (ratings.length === 0) {
-        return {
-            totalRatings: 0,
-            averageRating: 0,
-            ratingCounts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
-        };
+    async getUser(userId) {
+        try {
+            if (isPostgreSQLAvailable() && User) {
+                console.log('🐘 PostgreSQL dan user qidiryapman:', userId);
+                const user = await User.findByUserId(userId);
+                const result = user ? user.dataValues : null;
+                console.log('🔍 PostgreSQL natija:', result ? 'TOPILDI' : 'TOPILMADI');
+                return result;
+            } else {
+                console.log('📁 JSON dan user qidiryapman:', userId);
+                const users = loadUsers();
+                const result = users[userId] || null;
+                console.log('🔍 JSON natija:', result ? 'TOPILDI' : 'TOPILMADI');
+                return result;
+            }
+        } catch (error) {
+            console.error('Foydalanuvchini olishda xatolik:', error);
+            const users = loadUsers();
+            return users[userId] || null;
+        }
+    },
+
+    async getUsersCount() {
+        try {
+            if (isPostgreSQLAvailable() && User) {
+                return await User.count();
+            } else {
+                const users = loadUsers();
+                return Object.keys(users).length;
+            }
+        } catch (error) {
+            console.error('Foydalanuvchilar sonini olishda xatolik:', error);
+            const users = loadUsers();
+            return Object.keys(users).length;
+        }
+    },
+
+    async updateUserActivity(userId) {
+        try {
+            if (isPostgreSQLAvailable() && User) {
+                const user = await User.findByUserId(userId);
+                if (user) {
+                    await user.updateActivity();
+                    return true;
+                }
+                return false;
+            } else {
+                const users = loadUsers();
+                if (users[userId]) {
+                    users[userId].lastSeen = new Date().toISOString();
+                    saveUsers(users);
+                    return true;
+                }
+                return false;
+            }
+        } catch (error) {
+            console.error('Foydalanuvchi faolligini yangilashda xatolik:', error);
+            return false;
+        }
+    },
+
+    async getUserLanguage(userId) {
+        try {
+            if (isPostgreSQLAvailable() && User) {
+                const user = await User.findByUserId(userId);
+                return user ? user.language : 'uz';
+            } else {
+                const users = loadUsers();
+                return users[userId]?.language || 'uz';
+            }
+        } catch (error) {
+            console.error('Tilni olishda xatolik:', error);
+            return 'uz';
+        }
     }
-
-    const ratingCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    ratings.forEach(rating => {
-        ratingCounts[rating]++;
-    });
-
-    const totalRatings = ratings.length;
-    const sum = ratings.reduce((acc, rating) => acc + rating, 0);
-    const averageRating = sum / totalRatings;
-
-    return {
-        totalRatings,
-        averageRating: Math.round(averageRating * 100) / 100, // 2 kasr
-        ratingCounts
-    };
-}
-
-/**
- * Foydalanuvchi tilini saqlash
- */
-export function setUserLanguage(userId, language) {
-    const users = loadUsers();
-    if (users[userId]) {
-        users[userId].language = language;
-        users[userId].lastSeen = new Date().toISOString();
-        saveUsers(users);
-        return true;
-    }
-    return false;
-}
-
-/**
- * Foydalanuvchi tilini olish
- */
-export function getUserLanguage(userId) {
-    const users = loadUsers();
-    return users[userId]?.language || null; // Til tanlanmaguncha null
-}
-
-export default {
-    loadUsers,
-    saveUsers,
-    addUser,
-    updateUser,
-    getUser,
-    getAllUsers,
-    getUsersCount,
-    getOnlineUsersCount,
-    updateUserActivity,
-    setChannelMembership,
-    getChannelMembership,
-    saveUserRating,
-    getRatingStats,
-    setUserLanguage,
-    getUserLanguage
 };
+
+export default userManager;
